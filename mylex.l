@@ -13,13 +13,13 @@
 
 union {
   int ival;
-  char name [30];
   char str [80];
 } yylval;
 
 #include <string.h> 
 
 extern int atoi (const char *);
+int current_row=1;
 %}
 
 %option noyywrap
@@ -39,15 +39,24 @@ extern int atoi (const char *);
 all { strcpy(yylval.str,yytext); return ALL; }
 , { strcpy(yylval.str,yytext); return COMMA;}
 since { strcpy(yylval.str,yytext); return SINCE;}
-[\n\t ]+  /* skip white space */
+[\t ]+  /* skip white space */
+\n  { current_row++;}
 
-.          { fprintf (stderr, "unrecognized tokens %s\n", yytext); }
+.          { fprintf (stderr, "unrecognized token %s in row %d\n", yytext,current_row); }
 
 %%
+char* removeLastAndFirstChar(char* in, char* buffer) {
+    buffer = (char*)malloc(strlen(in));
+    // copy without the last char (removes ])
+    strncpy(buffer,in,strlen(in)-1);
+    // remove [
+    return buffer+1;
+}
 
 int main(int argc, char **argv)
 {
-    int token;
+    int token,year_num;
+    char* buffer;
 
     if (argc != 2)
     {
@@ -69,13 +78,15 @@ int main(int argc, char **argv)
             printf("SPORT\t\t%s\n", yylval.str);
             break;
         case NAME:
-            printf("NAME\t\t%s\n", yylval.str);
+            printf("NAME\t\t%s\t%s\n", yylval.str,removeLastAndFirstChar(yylval.str,buffer));
+            free(buffer);
             break;
         case YEARS:
             printf("YEARS\t\t%s\n", yylval.str);
             break;
         case YEAR_NUM:
-            printf("YEAR_NUM\t%d\n", yylval.ival==2020?++yylval.ival:yylval.ival);
+            year_num=yylval.ival==2020?++yylval.ival:yylval.ival;
+            printf("YEAR_NUM\t%d\t\t%d\n",year_num,year_num);
             break;
         case ALL:
             printf("ALL\t\t%s\n", yylval.str);
